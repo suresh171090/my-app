@@ -1,0 +1,105 @@
+node{
+   stage('SCM Checkout'){
+     git 'URL'
+   }
+   stage('Compile-Package'){
+
+      def mvnHome =  tool name: 'maven3', type: 'maven'   
+      sh "${mvnHome}/bin/mvn clean package"
+	  sh 'mv target/myweb*.war target/newapp.war'
+   }
+   /* stage('SonarQube Analysis') {
+	        def mvnHome =  tool name: 'maven3', type: 'maven'
+	        withSonarQubeEnv('sonar') { 
+	          sh "${mvnHome}/bin/mvn sonar:sonar"
+	        }
+	    } */
+   stage('Build Docker Imager'){
+   sh 'docker build -t suresh171090/myweb:0.0.2 .'
+   }
+   stage('Docker Image Push'){
+   withCredentials([string(credentialsId: 'dockerPass', variable: 'dockerPassword')]) {
+   sh "docker login -u suresh171090 -p ${dockerPassword}"
+    }
+   sh 'docker push suresh171090/myweb:0.0.2'
+   }
+  stage('Nexus Image Push'){
+   sh "docker login -u admin -p admin123 3.109.144.225:8083"
+   sh "docker tag saidamo/myweb:0.0.2 3.109.144.225:8083/damo:1.0.0"
+   sh 'docker push 3.109.144.225:8083/damo:1.0.0'
+   }
+
+   stage('Remove Previous Container'){
+	try{
+		sh 'docker rm -f tomcattest'
+	}catch(error){
+		//  do nothing if there is an exception
+	}
+   stage('Docker deployment'){
+   sh 'docker run -d -p 8090:8080 --name tomcattest suresh171090/myweb:0.0.2' 
+   }
+}
+}
+
+
+
+def call(String project, String hubUser) {
+    sh "docker image build -t ${hubUser}/${project} ."
+    sh "docker tag ${hubUser}/${project} ${hubUser}/${project}:${ImageTag}"
+    sh "docker tag ${hubUser}/${project} ${hubUser}/${project}:latest"
+    withCredentials([usernamePassword(
+            credentialsId: "docker",
+            usernameVariable: "USER",
+            passwordVariable: "PASS"
+    )]) {
+        sh "docker login -u '$USER' -p '$PASS'"
+    }
+    sh "docker image push ${hubUser}/${project}:${ImageTag}"
+    sh "docker image push ${hubUser}/${project}:latest"
+}
+
+
+
+
+node{
+   stage('SCM Checkout'){
+     git 'https://github.com/suresh171090/my-app.git'
+   }
+   stage('Compile-Package'){
+
+      def mvnHome =  tool name: 'maven3', type: 'maven'   
+      sh "${mvnHome}/bin/mvn clean package"
+	  sh 'mv target/myweb*.war target/newapp.war'
+   }
+   /* stage('SonarQube Analysis') {
+	        def mvnHome =  tool name: 'maven3', type: 'maven'
+	        withSonarQubeEnv('sonar') { 
+	          sh "${mvnHome}/bin/mvn sonar:sonar"
+	        }
+	    } */
+   stage('Build Docker Imager'){
+   sh 'docker build -t suresh171090/myweb:0.0.2 .'
+   }
+   stage('Docker Image Push'){
+   withCredentials([string(credentialsId: 'dockerPass', variable: 'dockerPassword')]) {
+   sh "docker login -u suresh171090 -p ${dockerPassword}"
+    }
+   sh 'docker push suresh171090/myweb:0.0.2'
+   }
+  stage('Nexus Image Push'){
+   sh "docker login -u admin -p admin123 3.109.144.225:8083"
+   sh "docker tag saidamo/myweb:0.0.2 3.109.144.225:8083/damo:1.0.0"
+   sh 'docker push 3.109.144.225:8083/damo:1.0.0'
+   }
+
+   stage('Remove Previous Container'){
+	try{
+		sh 'docker rm -f tomcattest'
+	}catch(error){
+		//  do nothing if there is an exception
+	}
+   stage('Docker deployment'){
+   sh 'docker run -d -p 8090:8080 --name tomcattest suresh171090/myweb:0.0.2' 
+   }
+}
+}

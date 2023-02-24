@@ -1,3 +1,5 @@
-def call(String name = 'human') {
-  echo "Hello, ${name}."
-}
+def call(String URL)
+node{
+   stage('SCM Checkout'){
+     git "${URL}"
+   }

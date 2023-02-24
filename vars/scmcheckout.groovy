@@ -1,7 +1,3 @@
-def call(String repoUrl)
-stage("Checkout Code") {
-   steps {
-       git branch: 'master',
-       url: "${repoUrl}"
-   }
+def call(String name = 'human') {
+  echo "Hello, ${name}."
 }
